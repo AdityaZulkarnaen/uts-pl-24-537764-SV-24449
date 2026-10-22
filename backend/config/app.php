@@ -86,6 +86,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Demo User
+    |--------------------------------------------------------------------------
+    |
+    | Credentials of the account created by the database seeder so the API
+    | and the Vue client can be tried right after installation.
+    |
+    */
+
+    'demo_user' => [
+        'name' => env('DEMO_USER_NAME', 'Admin Lab'),
+        'email' => env('DEMO_USER_EMAIL', 'admin@lab.test'),
+        'password' => env('DEMO_USER_PASSWORD', 'password'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |

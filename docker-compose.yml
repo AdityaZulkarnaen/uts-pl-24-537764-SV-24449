@@ -1,0 +1,64 @@
+services:
+    db:
+        image: mysql:8.4.13
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+        volumes:
+            - db_data:/var/lib/mysql
+        healthcheck:
+            test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+            start_period: 20s
+
+    backend:
+        build: ./backend
+        image: inventaris-lab-backend:local
+        restart: unless-stopped
+        environment:
+            APP_NAME: "Inventaris Lab"
+            APP_KEY: ${APP_KEY}
+            APP_URL: http://localhost:8000
+            DB_CONNECTION: mysql
+            DB_HOST: db
+            DB_PORT: 3306
+            DB_DATABASE: ${DB_DATABASE}
+            DB_USERNAME: ${DB_USERNAME}
+            DB_PASSWORD: ${DB_PASSWORD}
+            SESSION_DRIVER: file
+            CACHE_STORE: file
+            QUEUE_CONNECTION: sync
+            DEMO_USER_EMAIL: ${DEMO_USER_EMAIL:-admin@lab.test}
+            DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-password}
+        depends_on:
+            db:
+                condition: service_healthy
+        ports:
+            - "${BACKEND_PORT:-8000}:8000"
+        healthcheck:
+            test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') === false ? 1 : 0);"]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
+
+    frontend:
+        build:
+            context: ./frontend
+            args:
+                VITE_API_BASE_URL: /api
+        image: inventaris-lab-frontend:local
+        restart: unless-stopped
+        depends_on:
+            backend:
+                condition: service_healthy
+        ports:
+            - "${FRONTEND_PORT:-8080}:80"
+
+volumes:
+    db_data:

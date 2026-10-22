@@ -1,0 +1,32 @@
+# Dependencies are installed inside the image
+/vendor
+/node_modules
+
+# Local environment and secrets
+.env
+.env.*
+
+# Runtime and cache files
+/storage/logs/*
+!/storage/logs/.gitignore
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/bootstrap/cache/*.php
+/database/*.sqlite*
+/public/storage
+/public/hot
+
+# Development only
+/tests
+/.phpunit.cache
+.phpunit.result.cache
+phpunit.xml
+.git
+.gitignore
+.gitattributes
+Dockerfile
+.dockerignore
+*.md
