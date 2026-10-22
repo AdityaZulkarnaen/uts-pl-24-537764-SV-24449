@@ -1,0 +1,625 @@
+{
+  "info": {
+    "name": "UTS PL - Inventaris Lab API",
+    "description": "RESTful API inventaris alat laboratorium (Laravel + Sanctum).\n\nJalankan request \"Login\" lebih dulu; token otomatis disimpan ke variabel {{token}} dan dipakai oleh request lain lewat Bearer auth di level collection. Urutan folder sudah disusun agar bisa dijalankan dengan Collection Runner.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api"
+    },
+    {
+      "key": "email",
+      "value": "admin@lab.test"
+    },
+    {
+      "key": "password",
+      "value": "password"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "item_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Response berisi token\", function () {",
+                  "    pm.expect(body.token).to.be.a(\"string\").and.not.empty;",
+                  "});",
+                  "pm.collectionVariables.set(\"token\", body.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"device_name\": \"postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "Tukar email & password dengan personal access token."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Password Salah (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 422 Unprocessable Content\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test(\"Error pada field email\", function () {",
+                  "    pm.expect(pm.response.json().errors).to.have.property(\"email\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"salah-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Items",
+      "item": [
+        {
+          "name": "List Items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Data berupa array\", function () {",
+                  "    pm.expect(pm.response.json().data).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/items?per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/items?q=arduino&condition=baik",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "arduino"
+                },
+                {
+                  "key": "condition",
+                  "value": "baik"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Item (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.collectionVariables.set(\"item_id\", pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"LAB-PM-001\",\n  \"name\": \"Logic Analyzer Saleae\",\n  \"category\": \"Elektronika\",\n  \"quantity\": 2,\n  \"condition\": \"baik\",\n  \"location\": \"Lab Elektronika A-101\",\n  \"notes\": \"Dibuat dari Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Item - Validasi Gagal (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 422 Unprocessable Content\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test(\"Response berisi errors\", function () {",
+                  "    pm.expect(pm.response.json()).to.have.property(\"errors\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"\",\n  \"name\": \"\",\n  \"quantity\": -1,\n  \"condition\": \"hilang\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Show Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/items/{{item_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "items",
+                "{{item_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Kondisi berubah\", function () {",
+                  "    pm.expect(pm.response.json().data.condition).to.eql(\"rusak_ringan\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"LAB-PM-001\",\n  \"name\": \"Logic Analyzer Saleae\",\n  \"category\": \"Elektronika\",\n  \"quantity\": 3,\n  \"condition\": \"rusak_ringan\",\n  \"location\": \"Lab Elektronika A-101\",\n  \"notes\": \"Diubah dari Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/items/{{item_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "items",
+                "{{item_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/items/{{item_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "items",
+                "{{item_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Show Item Terhapus (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404 Not Found\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/items/{{item_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "items",
+                "{{item_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Items Tanpa Token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401 Unauthorized\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{base_url}}/items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "items"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Logout",
+      "item": [
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.set(\"token\", \"\");"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
