@@ -1,0 +1,14 @@
+# Installed and built inside the image
+node_modules
+dist
+
+# Local environment
+.env
+.env.*
+
+# Not needed in the build context
+.git
+.gitignore
+Dockerfile
+.dockerignore
+*.md
