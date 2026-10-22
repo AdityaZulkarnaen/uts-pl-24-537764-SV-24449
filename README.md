@@ -90,8 +90,23 @@ atau tidak valid, `404` saat data tidak ditemukan.
 4. Eloquent membaca/menulis tabel `items` di MySQL (`db:3306`).
 5. Laravel membalas JSON melalui `ItemResource`, lalu Vue memperbarui tampilan.
 
-## CI
+## CI/CD
 
-Workflow `.github/workflows/ci.yml` menjalankan `php artisan test` (job `backend-test`) serta
-`npm ci` dan `npm run build` (job `frontend-build`) pada push ke `main`, `dev`, `feature/**`,
-dan pada Pull Request ke `main` atau `dev`.
+Workflow `.github/workflows/ci.yml` berisi tiga job:
+
+| Job | Kapan berjalan | Isi |
+|---|---|---|
+| `backend-test` | push ke `main`, `dev`, `feature/**` dan Pull Request ke `main`/`dev` | `composer install`, `php artisan test` |
+| `frontend-build` | sama dengan di atas | `npm ci`, `npm run build` |
+| `deploy` | **hanya** push ke `main`, setelah dua job di atas lulus | build image backend & frontend, push ke `ghcr.io` dengan tag SHA commit, lalu smoke test image backend |
+
+Image yang dipublikasikan:
+
+- `ghcr.io/adityazulkarnaen/uts-pl-24-537764-sv-24449-backend:<sha>`
+- `ghcr.io/adityazulkarnaen/uts-pl-24-537764-sv-24449-frontend:<sha>`
+
+Smoke test memakai GitHub Secrets `APP_KEY` dan `DB_PASSWORD`
+(Settings → Secrets and variables → Actions); nilai rahasia tidak disimpan di repository.
+
+Branch `main` dan `dev` dilindungi ruleset: perubahan wajib lewat Pull Request dan status check
+`backend-test` serta `frontend-build` harus lulus sebelum merge.
