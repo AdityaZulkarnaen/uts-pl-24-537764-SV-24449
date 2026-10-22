@@ -59,3 +59,99 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  deploy:
+    name: deploy
+    needs: [backend-test, frontend-build]
+    # Only a push to main deploys; pull requests, dev and feature branches
+    # stop after the test and build jobs.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set image names
+        # ghcr.io requires lowercase repository names.
+        run: |
+          owner=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          repo=$(echo "${GITHUB_REPOSITORY#*/}" | tr '[:upper:]' '[:lower:]')
+          echo "BACKEND_IMAGE=ghcr.io/${owner}/${repo}-backend" >> "$GITHUB_ENV"
+          echo "FRONTEND_IMAGE=ghcr.io/${owner}/${repo}-frontend" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./frontend
+          push: true
+          build-args: VITE_API_BASE_URL=/api
+          tags: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+      - name: Smoke test published backend image
+        # Secrets come from Settings -> Secrets and variables -> Actions and
+        # are never stored in the repository.
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          IMAGE: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+        run: |
+          docker network create smoke
+          docker run -d --name smoke-db --network smoke \
+            -e MYSQL_DATABASE=inventaris_lab \
+            -e MYSQL_USER=inventaris \
+            -e MYSQL_PASSWORD="$DB_PASSWORD" \
+            -e MYSQL_ROOT_PASSWORD="$DB_PASSWORD" \
+            mysql:8.4.13
+          docker run -d --name smoke-backend --network smoke -p 8000:8000 \
+            -e APP_KEY="$APP_KEY" \
+            -e DB_CONNECTION=mysql \
+            -e DB_HOST=smoke-db \
+            -e DB_DATABASE=inventaris_lab \
+            -e DB_USERNAME=inventaris \
+            -e DB_PASSWORD="$DB_PASSWORD" \
+            "$IMAGE"
+
+          for _ in $(seq 1 60); do
+            curl -fs http://localhost:8000/up > /dev/null && break
+            sleep 2
+          done
+
+          login=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8000/api/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"admin@lab.test","password":"password"}')
+          guest=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/api/items)
+          server=$(curl -s -D - -o /dev/null http://localhost:8000/up | grep -i '^server:' | tr -d '\r')
+
+          echo "POST /api/login -> $login (expected 200)"
+          echo "GET /api/items without token -> $guest (expected 401)"
+          echo "$server"
+          test "$login" = 200
+          test "$guest" = 401
+
+      - name: Backend logs
+        if: always()
+        run: docker logs smoke-backend 2>&1 | tail -n 30 || true
