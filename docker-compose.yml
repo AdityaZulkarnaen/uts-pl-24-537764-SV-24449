@@ -42,10 +42,10 @@ services:
         ports:
             - "${BACKEND_PORT:-8000}:8000"
         healthcheck:
-            test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') === false ? 1 : 0);"]
+            test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
             interval: 10s
             timeout: 5s
-            retries: 10
+            retries: 3
             start_period: 30s
 
     frontend:
