@@ -7,15 +7,10 @@
 	root * /app/public
 	encode zstd br gzip
 
-	# Access log on stdout, so `docker compose logs backend` shows every
-	# request handled by FrankenPHP. Health checks are left out as noise.
+	# Access log dimatikan agar tidak mencatat data pribadi atau header sensitif
 	log {
-		output stdout
-		format console
+		output discard
 	}
-
-	@health path /up
-	log_skip @health
 
 	php_server
 }
