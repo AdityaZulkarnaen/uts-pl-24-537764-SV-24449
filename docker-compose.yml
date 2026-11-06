@@ -30,6 +30,7 @@ services:
             DB_DATABASE: ${DB_DATABASE}
             DB_USERNAME: ${DB_USERNAME}
             DB_PASSWORD: ${DB_PASSWORD}
+            LOG_CHANNEL: ${LOG_CHANNEL:-stdout}
             SESSION_DRIVER: file
             CACHE_STORE: file
             QUEUE_CONNECTION: sync

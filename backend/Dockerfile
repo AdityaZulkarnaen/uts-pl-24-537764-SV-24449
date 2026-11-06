@@ -45,7 +45,7 @@ COPY docker/Caddyfile /etc/frankenphp/Caddyfile
 # environment variables; none are baked into the image.
 ENV APP_ENV=production \
     APP_DEBUG=false \
-    LOG_CHANNEL=stderr
+    LOG_CHANNEL=stdout
 
 EXPOSE 8000
 
