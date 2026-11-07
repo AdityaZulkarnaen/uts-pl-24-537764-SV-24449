@@ -8,6 +8,8 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -20,6 +22,15 @@ class AuthController extends Controller
         $user = User::where('email', $request->validated('email'))->first();
 
         if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
+            Log::warning('auth.login_failed', [
+                'user_id' => 'guest',
+                'action' => 'login',
+                'resource' => 'auth',
+                'resource_id' => null,
+                'reason' => 'invalid_credentials',
+                'request_id' => (string) ($request->header('X-Request-Id') ?: Str::uuid()),
+            ]);
+
             throw ValidationException::withMessages([
                 'email' => ['Email atau password salah.'],
             ]);
