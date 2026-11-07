@@ -4,7 +4,10 @@ namespace App\Http\Requests;
 
 use App\Models\Item;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class StoreItemRequest extends FormRequest
@@ -33,5 +36,32 @@ class StoreItemRequest extends FormRequest
             'location' => ['required', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        $failedRules = [];
+        foreach ($validator->failed() as $field => $rules) {
+            $failedRules[$field] = array_map('strtolower', array_keys($rules));
+        }
+
+        $itemRoute = $this->route('item');
+        $resourceId = $itemRoute instanceof Item ? $itemRoute->id : (is_numeric($itemRoute) ? (int) $itemRoute : null);
+
+        Log::warning('item.validation_failed', [
+            'user_id' => $this->user()?->id ?? 'guest',
+            'action' => $this->isMethod('post') ? 'create' : 'update',
+            'resource' => 'item',
+            'resource_id' => $resourceId,
+            'reason' => 'validation_error',
+            'failed_fields' => array_keys($failedRules),
+            'failed_rules' => $failedRules,
+            'request_id' => (string) ($this->header('X-Request-Id') ?: Str::uuid()),
+        ]);
+
+        parent::failedValidation($validator);
     }
 }
