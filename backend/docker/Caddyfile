@@ -1,6 +1,9 @@
 {
 	frankenphp
 	admin off
+
+	# Kumpulkan metrik HTTP Caddy (jumlah request, durasi, kode status)
+	metrics
 }
 
 :8000 {
@@ -13,4 +16,10 @@
 	}
 
 	php_server
+}
+
+# Endpoint metrik untuk Prometheus. Port ini tidak dipublikasikan ke host,
+# hanya bisa diakses dari jaringan internal compose.
+:2019 {
+	metrics /metrics
 }

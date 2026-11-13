@@ -7,7 +7,8 @@ Aplikasi pencatatan inventaris alat laboratorium yang terdiri dari:
 - `backend/` — RESTful API Laravel 13 dengan autentikasi token (Laravel Sanctum), dijalankan dengan FrankenPHP
 - `frontend/` — antarmuka Vue 3 + Vite yang memakai API backend lewat Axios
 - `postman/` — Postman Collection untuk menguji seluruh endpoint
-- `docker-compose.yml` — menjalankan MySQL, backend, dan frontend sekaligus
+- `docker-compose.yml` — menjalankan MySQL, backend, frontend, dan layanan pemantauan sekaligus
+- `monitoring/` — konfigurasi Prometheus, aturan alarm, dan dashboard Grafana
 
 ## Menjalankan dengan Docker
 
@@ -33,6 +34,66 @@ jika 8080 atau 8000 sudah dipakai aplikasi lain.
 
 Data tetap ada setelah `docker compose down` lalu `docker compose up -d`.
 Untuk menghapus data sekalian, gunakan `docker compose down -v`.
+
+## Pemantauan (Prometheus + Grafana)
+
+`docker compose up -d` juga menjalankan empat layanan pemantau. Port-nya hanya dibuka
+di `127.0.0.1`, tidak ke jaringan luar.
+
+| Service | Alamat | Keterangan |
+|---|---|---|
+| prometheus | http://127.0.0.1:9090 | `/targets` untuk status scrape, `/alerts` untuk status alarm |
+| grafana | http://127.0.0.1:3000 | dashboard **Inventaris Lab - Kesehatan Aplikasi** (folder Inventaris Lab) |
+| cadvisor | (internal) | CPU, memori, jaringan per container |
+| node-exporter | (internal) | CPU, memori, disk mesin host |
+
+Backend (FrankenPHP/Caddy) membuka metrik HTTP di `backend:2019/metrics` (hanya di jaringan
+compose), sehingga Prometheus mendapat jumlah permintaan, kode status, dan waktu respons.
+
+```
+monitoring/
+├── prometheus/prometheus.yml        # target scrape
+├── prometheus/alerts.yml            # aturan alarm BackendDown
+└── grafana/
+    ├── provisioning/                # datasource Prometheus + pemuat dashboard
+    └── dashboards/inventaris-lab.json   # ekspor JSON dashboard
+```
+
+Isi dashboard (judul panel berupa pertanyaan):
+
+1. Apakah setiap layanan sedang hidup? (`up`)
+2. Berapa alarm yang sedang berbunyi? (`ALERTS`)
+3. Container mana yang paling banyak memakai CPU? (%, 100% = 1 core)
+4. Berapa memori yang dipakai tiap container? (byte)
+5. Berapa permintaan per detik yang dilayani backend, per kode status? (req/s)
+6. Seberapa lama backend menjawab permintaan (p95)? (detik)
+
+### Alarm `BackendDown`
+
+Berbunyi jika `up{job="backend"} == 0` selama 1 menit (`for: 1m`). Anotasi `action` berisi
+tindakan pertama untuk penerima alarm. Cara membuktikan:
+
+```sh
+docker compose stop backend      # matikan backend dengan sengaja
+# buka http://127.0.0.1:9090/alerts: Inactive → Pending → FIRING (±1–1,5 menit)
+docker compose up -d backend     # pulihkan, alarm kembali Inactive
+```
+
+### Password admin Grafana
+
+`GRAFANA_ADMIN_PASSWORD` wajib diisi di `.env`; compose menolak jalan jika kosong, jadi
+Grafana tidak pernah berjalan dengan `admin/admin`. Kombinasi bawaan itu adalah yang pertama
+dicoba penyerang dan bot. Siapa pun yang masuk sebagai admin bisa membaca seluruh metrik
+(nama service, lalu lintas, waktu aktif), mengubah atau menghapus dashboard, menambah
+datasource untuk menjangkau layanan internal lain, dan membuat akun baru. Pendaftaran akun
+dan akses anonim juga dimatikan.
+
+Grafana hanya memakai `GF_SECURITY_ADMIN_PASSWORD` saat database-nya pertama kali dibuat.
+Untuk mengganti password pada volume `grafana_data` yang sudah ada:
+
+```sh
+docker compose exec grafana grafana cli admin reset-admin-password '<password-baru>'
+```
 
 ## Pengembangan lokal (tanpa Docker)
 
