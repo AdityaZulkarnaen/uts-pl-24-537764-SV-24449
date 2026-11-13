@@ -70,5 +70,78 @@ services:
         ports:
             - "${FRONTEND_PORT:-8080}:80"
 
+    # ---------------------------------------------------------------
+    # Pemantauan: Prometheus mengumpulkan metrik, Grafana menampilkan,
+    # cAdvisor memberi metrik per container, node-exporter metrik host.
+    # Port monitoring hanya dibuka di 127.0.0.1 (tidak ke jaringan luar).
+    # ---------------------------------------------------------------
+    prometheus:
+        image: prom/prometheus:v3.15.1
+        restart: unless-stopped
+        logging: *default-logging
+        command:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=15d
+        volumes:
+            - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+            - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+            - prometheus_data:/prometheus
+        ports:
+            - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+
+    grafana:
+        image: grafana/grafana:13.2.6
+        restart: unless-stopped
+        logging: *default-logging
+        environment:
+            GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+            # Wajib diisi di .env; compose menolak jalan jika kosong.
+            GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?isi GRAFANA_ADMIN_PASSWORD di .env}
+            GF_USERS_ALLOW_SIGN_UP: "false"
+            GF_AUTH_ANONYMOUS_ENABLED: "false"
+            GF_ANALYTICS_REPORTING_ENABLED: "false"
+        volumes:
+            - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+            - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+            - grafana_data:/var/lib/grafana
+        depends_on:
+            - prometheus
+        ports:
+            - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+
+    cadvisor:
+        image: ghcr.io/google/cadvisor:v0.60.6
+        restart: unless-stopped
+        logging: *default-logging
+        privileged: true
+        devices:
+            - /dev/kmsg
+        command:
+            - --docker_only=true
+            - --housekeeping_interval=10s
+        volumes:
+            - /:/rootfs:ro
+            - /var/run:/var/run:ro
+            - /sys:/sys:ro
+            - /var/lib/docker/:/var/lib/docker:ro
+            - /dev/disk/:/dev/disk:ro
+
+    node-exporter:
+        image: prom/node-exporter:v1.12.1
+        restart: unless-stopped
+        logging: *default-logging
+        command:
+            - --path.procfs=/host/proc
+            - --path.sysfs=/host/sys
+            - --path.rootfs=/rootfs
+            - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+        volumes:
+            - /proc:/host/proc:ro
+            - /sys:/host/sys:ro
+            - /:/rootfs:ro
+
 volumes:
     db_data:
+    prometheus_data:
+    grafana_data:
