@@ -1,0 +1,23 @@
+groups:
+  - name: inventaris-lab
+    rules:
+      - alert: BackendDown
+        # up bernilai 0 jika Prometheus gagal mengambil metrik backend,
+        # artinya container backend mati atau tidak menjawab.
+        expr: up{job="backend"} == 0
+        # Tunggu 1 menit agar restart singkat tidak langsung membunyikan alarm.
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend Inventaris Lab tidak bisa dihubungi ({{ $labels.instance }})"
+          description: >-
+            Prometheus gagal mengambil metrik dari {{ $labels.instance }} selama lebih
+            dari 1 menit. API /api tidak melayani pengguna, frontend tidak bisa login
+            atau memuat data inventaris.
+          action: >-
+            Tindakan pertama: jalankan `docker compose ps backend` untuk melihat status
+            container, lalu `docker compose logs --tail=100 backend` untuk mencari
+            penyebabnya (mis. database tidak terjangkau atau APP_KEY kosong). Jika
+            container berhenti, nyalakan lagi dengan `docker compose up -d backend`
+            dan pastikan http://localhost:8000/health menjawab 200.
