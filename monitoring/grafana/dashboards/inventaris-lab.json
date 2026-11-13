@@ -164,6 +164,8 @@
         "overrides": [
           { "matcher": { "id": "byRegexp", "options": "HTTP 2.." }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } } ] },
           { "matcher": { "id": "byRegexp", "options": "HTTP 4.." }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } } ] },
+          { "matcher": { "id": "byName", "options": "HTTP 401" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } } ] },
+          { "matcher": { "id": "byName", "options": "HTTP 404" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "purple" } } ] },
           { "matcher": { "id": "byRegexp", "options": "HTTP 5.." }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] }
         ]
       }
